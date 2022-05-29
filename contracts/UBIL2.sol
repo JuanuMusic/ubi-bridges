@@ -7,17 +7,20 @@ import "./interfaces/IUBIL2.sol";
 
 
 contract UBIL2 is IUBIL2, ERC20, Ownable {
-    mapping(address => uint256) incomingRate;
-    mapping(address => uint256) accruedSince;
-    address ubiBridge;
+    mapping(address => uint256) public incomingRate;
+    mapping(address => uint256) public accruedSince;
+    address public ubiBridge;
+
+    event AccrualIncreased(address indexed sender, uint256 rate);
+    event AccrualDecreased(address indexed sender, uint256 rate);
 
     modifier onlyBridge {
+        require(ubiBridge != address(0), "ubiBridge not set");
         require(msg.sender == ubiBridge, "sender is not bridge");
         _;
     }
 
-    constructor(address pUBIBridge, string memory pName, string memory pSymbol) ERC20(pName, pSymbol) {
-        ubiBridge = pUBIBridge;
+    constructor(string memory pName, string memory pSymbol) ERC20(pName, pSymbol) {   
     }
 
     function setUBIBridge(address pUBIBridge) public onlyOwner {
@@ -31,6 +34,9 @@ contract UBIL2 is IUBIL2, ERC20, Ownable {
 
     /// @dev Accrued balance since last accrual. This is the amount of UBI that has been accrued since the last time the balance consolidated.
     function getAccruedBalance(address account) public view returns(uint256) {
+        if(accruedSince[account] == 0) {
+            return 0;
+        }
         return (block.timestamp - accruedSince[account]) * incomingRate[account];
     }
 
@@ -45,6 +51,7 @@ contract UBIL2 is IUBIL2, ERC20, Ownable {
         require(msg.sender == ubiBridge, "can only be called by bridge");
         consolidateBalance(account);
         incomingRate[account] += rate;
+        emit AccrualIncreased(account, rate);
     }
 
     /// @dev Subtracts a specified accrual rate from an account. Only executed by the bridge.
@@ -52,6 +59,7 @@ contract UBIL2 is IUBIL2, ERC20, Ownable {
         require(msg.sender == ubiBridge, "can only be called by bridge");
         consolidateBalance(account);
         incomingRate[account] -= rate;
+        emit AccrualDecreased(account, rate);
     }
 
     /// @dev Adds the specified balance to the account. Only executed by the bridge.

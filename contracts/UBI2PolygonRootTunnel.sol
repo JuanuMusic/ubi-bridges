@@ -18,8 +18,9 @@ contract UBI2PolygonRootTunnel is IERC721Receiver, FxBaseRootTunnel, ReentrancyG
     /// @dev Event emited when a FUBI has been deposited to the bridge.
     event FUBIDeposited(address indexed sourceHuman, address indexed depositer, uint256 id);
 
-    constructor(address pUbi, address pFlow, address _checkpointManager, address _fxRoot) FxBaseRootTunnel(_checkpointManager, _fxRoot) {
-        ubi = pUbi;
+    constructor(address pUBI, address pFUBI, address _checkpointManager, address _fxRoot) FxBaseRootTunnel(_checkpointManager, _fxRoot) {
+        ubi = pUBI;
+        fubi = pFUBI;
     }
 
     /// @dev set the UBI address.

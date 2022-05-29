@@ -21,8 +21,7 @@ contract UBI2PolygonChildTunnel is FxBaseChildTunnel, Ownable {
     /// @dev Event emited when UBI deposit is received
     event UBIDepositReceived(address indexed sender, uint256 amount, uint256 depositTime);
 
-    constructor(address pUBI, address _fxChild, address _tokenTemplate) FxBaseChildTunnel(_fxChild) {
-        ubi = pUBI;
+    constructor(address _fxChild) FxBaseChildTunnel(_fxChild) {
     }
 
     /// @dev set the UBI address.
