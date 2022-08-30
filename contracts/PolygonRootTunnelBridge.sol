@@ -47,7 +47,7 @@ contract PolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
         uint256 chainId,
         uint256 amount,
         bytes calldata data
-    ) external override returns (bool) {
+    ) external override {
         // TODO: Implement later
     }
 
@@ -55,7 +55,7 @@ contract PolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
         uint256 chainId,
         uint256 tokenId,
         bytes calldata data
-    ) external override returns (bool) {
+    ) external override {
         // require(IUBI(ubi).isDelegator(msg.sender), 'only delegator can deposit');
         if (msg.sender != bridgeRouter) {
             revert('OnlyBridgeRouter');
@@ -69,7 +69,6 @@ contract PolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
         bytes memory message = abi.encode(FUBI_DEPOSIT, abi.encode(sender, ratePerSecond, block.timestamp, tokenId));
         _sendMessageToChild(message);
         emit FUBIDeposited(sender, msg.sender, tokenId);
-        return true;
     }
 
     function _getChainId() internal view returns (uint256) {
