@@ -12,7 +12,7 @@ interface IBridge {
         uint256 chainId,
         uint256 amount,
         bytes calldata data
-    ) external returns (bool);
+    ) external;
 
     /**
      * @dev Bridges a flow from origin chain to the chain corresponding to the given chain ID.
@@ -24,5 +24,5 @@ interface IBridge {
         uint256 chainId,
         uint256 tokenId,
         bytes calldata data
-    ) external returns (bool);
+    ) external;
 }

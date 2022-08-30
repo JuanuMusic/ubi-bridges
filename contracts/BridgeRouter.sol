@@ -6,12 +6,21 @@ import {IBridge} from './interfaces/IBridge.sol';
 import {IERC721} from '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
+contract BridgeRouterStorage {
+    address governance;
+    address UBI;
+    address fUBI;
+
+    mapping(uint256 => address) bridgeByChainId;
+}
+
 // TODO: Make the BridgeRouter a TransparentUpgradeableProxy so it could support future use cases.
 // TODO: Also consider renaming it to BridgeManager.
-contract BridgeRouter is IERC721Receiver {
+contract BridgeRouter is IERC721Receiver, BridgeRouterStorage {
     error OnlyGovernance();
     error UnsupportedChain();
     error InvalidAddress();
+    error UnsupportedNft();
 
     //TODO: improve event signatures
     event FlowBridged();
@@ -24,12 +33,6 @@ contract BridgeRouter is IERC721Receiver {
             revert OnlyGovernance();
         }
     }
-
-    address governance;
-    address UBI;
-    address fUBI;
-
-    mapping(uint256 => address) bridgeByChainId;
 
     constructor(
         address _governance,
@@ -50,11 +53,7 @@ contract BridgeRouter is IERC721Receiver {
      * @param bridge address where bridge implementation for given chain ID is; use zero-address to disable chain ID.
      */
     function setBridge(uint256 chainId, address bridge) external onlyGovernance {
-        if (bridge == address(0)) {
-            revert InvalidAddress();
-        } else {
-            bridgeByChainId[chainId] = bridge;
-        }
+        bridgeByChainId[chainId] = bridge;
     }
 
     /**
@@ -68,7 +67,7 @@ contract BridgeRouter is IERC721Receiver {
         uint256 amount,
         bytes calldata data
     ) external {
-        IERC20(UBI).transferFrom(msg.sender, address(this), amount); //TODO: Worth to use SafeERC20 with a fixed impl?
+        IERC20(UBI).transferFrom(msg.sender, address(this), amount); //TODO: Worth to use SafeERC20 with a fixed UBI impl?
         _getBridgeIfSupported(chainId).bridgeAmount(chainId, amount, data);
         emit AmountBridged();
     }
@@ -84,29 +83,38 @@ contract BridgeRouter is IERC721Receiver {
         uint256 tokenId,
         bytes calldata data
     ) external {
-        //TODO: Could use safeTransferFrom and let the onERC721Received do the magic, but this should be cheaper
         IERC721(fUBI).transferFrom(msg.sender, address(this), tokenId);
         _bridgeFlow(chainId, tokenId, data);
     }
 
     /**
-     * @param data it should contain encoded the chainId and then any arbitrary data that might be required by the
-     * bridge implementation.
+     * @dev Hook used to enable ERC-721 token bridging through transfers to this contract.
+     * @param tokenId The ID of the bridged ERC-721 token.
+     * @param data Arbitrary data passed by the user. It should first contain the chain ID encoded, followed by any
+     *             arbitrary data that might be required by the expected bridge implementation.
      */
     function onERC721Received(
         address, /* operator */
         address, /* from */
         uint256 tokenId,
         bytes calldata data
-    ) public virtual override returns (bytes4) {
+    ) public override returns (bytes4) {
         if (msg.sender == fUBI) {
             (uint256 chainId, bytes memory bridgeData) = abi.decode(data, (uint256, bytes));
             _bridgeFlow(chainId, tokenId, bridgeData);
+        } else {
+            revert UnsupportedNft();
         }
-        // TODO: Maybe add else branch with revert to be firendly against accidental unsupported-NFTs transfers?
         return this.onERC721Received.selector;
     }
 
+    /**
+     * @dev Bridges a flow by routing the call to the corresponding bride implementation. Reverts if the given chain
+     *      ID is not currently supported. Emits a `FlowBridged` event. Internal function to abstract bridge flow logic.
+     * @param chainId the destination chain ID, specially in case same bridge can handle more than one.
+     * @param tokenId the token ID of the flow NFT.
+     * @param data arbitrary data that might be required by the bridge implementation.
+     */
     function _bridgeFlow(
         uint256 chainId,
         uint256 tokenId,
@@ -117,7 +125,7 @@ contract BridgeRouter is IERC721Receiver {
     }
 
     /**
-     * @dev Gets the bridge implementation for the given chain ID, fails in case of unsupported chain.
+     * @dev Gets the bridge implementation for the given chain ID, reverts in case of unsupported chain.
      * @param chainId the ID of the destination chain for the bridge.
      */
     function _getBridgeIfSupported(uint256 chainId) internal view returns (IBridge) {
