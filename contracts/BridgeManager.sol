@@ -6,7 +6,7 @@ import {IBridge} from './interfaces/IBridge.sol';
 import {IERC721} from '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
-contract BridgeRouterStorage {
+contract BridgeManagerStorage {
     address governance;
     address UBI;
     address fUBI;
@@ -14,9 +14,8 @@ contract BridgeRouterStorage {
     mapping(uint256 => address) bridgeByChainId;
 }
 
-// TODO: Make the BridgeRouter a TransparentUpgradeableProxy so it could support future use cases.
-// TODO: Also consider renaming it to BridgeManager.
-contract BridgeRouter is IERC721Receiver, BridgeRouterStorage {
+// TODO: Make the BridgeManager a TransparentUpgradeableProxy so it could support future use cases.
+contract BridgeManager is IERC721Receiver, BridgeManagerStorage {
     error OnlyGovernance();
     error UnsupportedChain();
     error InvalidAddress();

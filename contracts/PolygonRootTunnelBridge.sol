@@ -11,7 +11,7 @@ import './interfaces/IBridge.sol';
 contract PolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
     address UBI;
     address fUBI;
-    address bridgeRouter;
+    address bridgeManager;
     bytes public latestData;
 
     bytes32 public constant FUBI_DEPOSIT = keccak256('FUBI_DEPOSIT');
@@ -57,8 +57,8 @@ contract PolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
         bytes calldata data
     ) external override {
         // require(IUBI(ubi).isDelegator(msg.sender), 'only delegator can deposit');
-        if (msg.sender != bridgeRouter) {
-            revert('OnlyBridgeRouter');
+        if (msg.sender != bridgeManager) {
+            revert('OnlyBridgeManager');
         }
         // NOTE: BirdgeRouter already validated that the call comes from Flow owner or fUBI contract.
         (uint256 ratePerSecond, uint256 startTime, address sender, bool isActive) = IFUBI(fUBI).getFlow(tokenId);
