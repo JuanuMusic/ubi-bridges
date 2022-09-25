@@ -1,29 +1,53 @@
-//SPDX-License-Identifier: Unlicense
+//SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IERC721Receiver} from '@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol';
-import {IBridge} from './interfaces/IBridge.sol';
-import {IERC721} from '@openzeppelin/contracts/token/ERC721/IERC721.sol';
-import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import {IBridge} from "./interfaces/IBridge.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-contract BridgeManagerStorage {
-    address governance;
-    address UBI;
-    address fUBI;
+abstract contract BridgeManagerStorage {
+    /**
+     * WARNING: Only add storage fields appending them just before the `__gap`. Never change the order of them.
+     *
+     * Read about storage layout compatibility at https://blog.openzeppelin.com/the-state-of-smart-contract-upgrades/
+     * and also at https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#modifying-your-contracts.
+     */
+    mapping(uint256 => address) public bridgeByChainId;
+    address public governance;
+    address public UBI;
+    address public fUBI;
 
-    mapping(uint256 => address) bridgeByChainId;
+    /**
+     * WARNING: Add the new storage fields just above this `__gap` field and decrement the `__gap` array size once per
+     * each new storage SLOT used. Per each storage slot used, not storage field!
+     *
+     * Read about storage gaps at https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps.
+     */
+    uint256[100] private __gap;
 }
 
-// TODO: Make the BridgeManager a TransparentUpgradeableProxy so it could support future use cases.
-contract BridgeManager is IERC721Receiver, BridgeManagerStorage {
-    error OnlyGovernance();
-    error UnsupportedChain();
+/**
+ * WARNING: If you add inheritance from contracts that have storage fields, make sure you do not brake storage layout
+ * compatibility. Always add new inheritance appending them at the end of current ones and do not re-order them.
+ * Add new non-inherited storage at `BridgeManagerStorage` following the rules documented there.
+ *
+ * Read about storage layout compatibility at https://blog.openzeppelin.com/the-state-of-smart-contract-upgrades/
+ * and also at https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#modifying-your-contracts.
+ */
+contract BridgeManager is IERC721Receiver, Initializable, UUPSUpgradeable, BridgeManagerStorage {
     error InvalidAddress();
+    error OnlyGovernance();
+    error OnlyUBI();
+    error UnsupportedChain();
     error UnsupportedNft();
 
-    //TODO: improve event signatures
-    event FlowBridged();
-    event AmountBridged();
+    event AmountBridged(address indexed bridge, uint256 indexed chainId, uint256 indexed amount, bytes data);
+    event BridgeSet(uint256 indexed chainId, address bridge);
+    event GovernanceTransferred(address indexed oldGovernance, address indexed newGovernance);
+    event FlowBridged(address indexed bridge, uint256 indexed chainId, uint256 indexed tokenId, bytes data);
 
     modifier onlyGovernance() {
         if (msg.sender == governance) {
@@ -33,74 +57,90 @@ contract BridgeManager is IERC721Receiver, BridgeManagerStorage {
         }
     }
 
-    constructor(
+    /**
+     * @dev Contract initializer. For new `BridgeManager` versions replace `initializer` modifier by `reinitializer(v)`
+     * where `v` is the new version number of the contract. Read more about initializers at:
+     * https://blog.openzeppelin.com/the-state-of-smart-contract-upgrades/#implementation-contract-limitations
+     * @param _governance The governance address.
+     * @param _UBI The UBI ERC-20 address.
+     * @param _fUBI The fUBI ERC-721 address.
+     */
+    function initialize(
         address _governance,
         address _UBI,
         address _fUBI
-    ) {
+    ) external initializer {
         governance = _governance;
         UBI = _UBI;
         fUBI = _fUBI;
     }
 
-    //TODO: Should we add EIP-712 meta-tx support for bridge functions?
+    /**
+     * @dev Transfers governance rights to a new address.
+     * @param _newGovernance The new governance address.
+     */
+    function transferGovernance(address _newGovernance) external {
+        governance = _newGovernance;
+        emit GovernanceTransferred(governance, _newGovernance);
+    }
 
     /**
-     * @notice Sets the
-     *
-     * @param chainId destination chain ID.
-     * @param bridge address where bridge implementation for given chain ID is; use zero-address to disable chain ID.
+     * @dev Sets the bridge for the given chain ID.
+     * @param _chainId The destination chain ID.
+     * @param _bridge The bridge implementation address for given chain ID. Set as zero address for unsupported chains.
      */
-    function setBridge(uint256 chainId, address bridge) external onlyGovernance {
-        bridgeByChainId[chainId] = bridge;
+    function setBridge(uint256 _chainId, address _bridge) external onlyGovernance {
+        bridgeByChainId[_chainId] = _bridge;
+        emit BridgeSet(_chainId, _bridge);
     }
 
     /**
      * @dev Bridges an amount by routing the call to the corresponding bride implementation.
-     * @param chainId the destination chain ID, specially in case same bridge can handle more than one.
-     * @param amount the amount of tokens to bridge.
-     * @param data arbitrary data that might be required by the bridge implementation.
+     * @param _chainId The destination chain ID, specially in case same bridge can handle more than one.
+     * @param _amount The amount of tokens to bridge.
+     * @param _data Arbitrary data that might be required by the bridge implementation.
      */
     function bridgeAmount(
-        uint256 chainId,
-        uint256 amount,
-        bytes calldata data
+        uint256 _chainId,
+        uint256 _amount,
+        bytes calldata _data
     ) external {
-        IERC20(UBI).transferFrom(msg.sender, address(this), amount); //TODO: Worth to use SafeERC20 with a fixed UBI impl?
-        _getBridgeIfSupported(chainId).bridgeAmount(chainId, amount, data);
-        emit AmountBridged();
+        IERC20(UBI).transferFrom(msg.sender, address(this), _amount);
+        address bridge = _getBridgeAddressIfSupported(_chainId);
+        IBridge(bridge).bridgeAmount(_chainId, _amount, _data);
+        emit AmountBridged(bridge, _chainId, _amount, _data);
     }
 
     /**
      * @dev Bridges a flow by routing the call to the corresponding bride implementation.
-     * @param chainId the destination chain ID, specially in case same bridge can handle more than one.
-     * @param tokenId the token ID of the flow NFT.
-     * @param data arbitrary data that might be required by the bridge implementation.
+     * @param _chainId The destination chain ID, specially in case same bridge can handle more than one.
+     * @param _tokenId The token ID of the flow NFT.
+     * @param _data arbitrary data that might be required by the bridge implementation.
      */
     function bridgeFlow(
-        uint256 chainId,
-        uint256 tokenId,
-        bytes calldata data
+        uint256 _chainId,
+        uint256 _tokenId,
+        bytes calldata _data
     ) external {
-        IERC721(fUBI).transferFrom(msg.sender, address(this), tokenId);
-        _bridgeFlow(chainId, tokenId, data);
+        IERC721(fUBI).transferFrom(msg.sender, address(this), _tokenId);
+        _bridgeFlow(_chainId, _tokenId, _data);
     }
 
     /**
      * @dev Hook used to enable ERC-721 token bridging through transfers to this contract.
-     * @param tokenId The ID of the bridged ERC-721 token.
-     * @param data Arbitrary data passed by the user. It should first contain the chain ID encoded, followed by any
-     *             arbitrary data that might be required by the expected bridge implementation.
+     * @param _tokenId The ID of the bridged ERC-721 token.
+     * @param _data Arbitrary data passed by the user. It should first contain the chain ID encoded, followed by any
+     * arbitrary data that might be required by the expected bridge implementation.
      */
     function onERC721Received(
         address, /* operator */
         address, /* from */
-        uint256 tokenId,
-        bytes calldata data
+        uint256 _tokenId,
+        bytes calldata _data
     ) public override returns (bytes4) {
         if (msg.sender == fUBI) {
-            (uint256 chainId, bytes memory bridgeData) = abi.decode(data, (uint256, bytes));
-            _bridgeFlow(chainId, tokenId, bridgeData);
+            (uint256 chainId, bytes memory bridgeData) = abi.decode(_data, (uint256, bytes));
+            _bridgeFlow(chainId, _tokenId, bridgeData);
         } else {
             revert UnsupportedNft();
         }
@@ -109,29 +149,37 @@ contract BridgeManager is IERC721Receiver, BridgeManagerStorage {
 
     /**
      * @dev Bridges a flow by routing the call to the corresponding bride implementation. Reverts if the given chain
-     *      ID is not currently supported. Emits a `FlowBridged` event. Internal function to abstract bridge flow logic.
-     * @param chainId the destination chain ID, specially in case same bridge can handle more than one.
-     * @param tokenId the token ID of the flow NFT.
-     * @param data arbitrary data that might be required by the bridge implementation.
+     * ID is not currently supported. Emits a `FlowBridged` event. Internal function to abstract bridge flow logic.
+     * @param _chainId The destination chain ID, specially in case same bridge can handle more than one.
+     * @param _tokenId The token ID of the flow NFT.
+     * @param _data Arbitrary data that might be required by the bridge implementation.
      */
     function _bridgeFlow(
-        uint256 chainId,
-        uint256 tokenId,
-        bytes memory data
+        uint256 _chainId,
+        uint256 _tokenId,
+        bytes memory _data
     ) internal {
-        _getBridgeIfSupported(chainId).bridgeFlow(chainId, tokenId, data);
-        emit FlowBridged();
+        address bridge = _getBridgeAddressIfSupported(_chainId);
+        IBridge(bridge).bridgeFlow(_chainId, _tokenId, _data);
+        emit FlowBridged(bridge, _chainId, _tokenId, _data);
     }
 
     /**
-     * @dev Gets the bridge implementation for the given chain ID, reverts in case of unsupported chain.
-     * @param chainId the ID of the destination chain for the bridge.
+     * @dev Gets the bridge implementation address for the given chain ID, reverts in case of unsupported chain.
+     * @param _chainId The ID of the destination chain for the bridge.
+     * @return The address of the bridge implementation.
      */
-    function _getBridgeIfSupported(uint256 chainId) internal view returns (IBridge) {
-        address bridge = bridgeByChainId[chainId];
+    function _getBridgeAddressIfSupported(uint256 _chainId) internal view returns (address) {
+        address bridge = bridgeByChainId[_chainId];
         if (bridge == address(0)) {
             revert UnsupportedChain();
         }
-        return IBridge(bridge);
+        return bridge;
     }
+
+    /**
+     * @dev Overrides the `_authorizeUpgrade` hook from `UUPSUpgradeable` adding the `onlyGovernance` modifier.
+     * @param _newImplementation The new contract implementation address.
+     */
+    function _authorizeUpgrade(address _newImplementation) internal override onlyGovernance {}
 }
