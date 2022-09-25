@@ -1,12 +1,12 @@
-//SPDX-License-Identifier: Unlicense
+//SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/IUBIL2.sol";
+import "../security/Governable.sol";
+import "./ChildMintableERC20.sol";
+import "../interfaces/IUBIL2.sol";
 
 
-contract UBIL2 is IUBIL2, ERC20Burnable, Ownable {
+contract UBIPolygon is IUBIL2, ChildMintableERC20, Governable {
     struct AccountInfo {
         uint256 incomingRate;
         uint256 accruedSince;
@@ -24,10 +24,12 @@ contract UBIL2 is IUBIL2, ERC20Burnable, Ownable {
         _;
     }
 
-    constructor(string memory pName, string memory pSymbol) ERC20Burnable(pName, pSymbol) {   
+    constructor(string memory pName,
+        string memory pSymbol,
+        address pChildChainManager) ChildMintableERC20(pName, pSymbol, pChildChainManager) {   
     }
 
-    function setUBIBridge(address pUBIBridge) public onlyOwner {
+    function setUBIBridge(address pUBIBridge) public onlyGovernance {
         ubiBridge = pUBIBridge;
     }
 

@@ -7,6 +7,7 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import {Governable} from "./security/Governable.sol";
 
 abstract contract BridgeManagerStorage {
     /**
@@ -16,7 +17,7 @@ abstract contract BridgeManagerStorage {
      * and also at https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#modifying-your-contracts.
      */
     mapping(uint256 => address) public bridgeByChainId;
-    address public governance;
+    
     address public UBI;
     address public fUBI;
 
@@ -37,25 +38,15 @@ abstract contract BridgeManagerStorage {
  * Read about storage layout compatibility at https://blog.openzeppelin.com/the-state-of-smart-contract-upgrades/
  * and also at https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#modifying-your-contracts.
  */
-contract BridgeManager is IERC721Receiver, Initializable, UUPSUpgradeable, BridgeManagerStorage {
+contract BridgeManager is IERC721Receiver, Initializable, UUPSUpgradeable, Governable, BridgeManagerStorage {
     error InvalidAddress();
-    error OnlyGovernance();
     error OnlyUBI();
     error UnsupportedChain();
     error UnsupportedNft();
 
     event AmountBridged(address indexed bridge, uint256 indexed chainId, uint256 indexed amount, bytes data);
     event BridgeSet(uint256 indexed chainId, address bridge);
-    event GovernanceTransferred(address indexed oldGovernance, address indexed newGovernance);
     event FlowBridged(address indexed bridge, uint256 indexed chainId, uint256 indexed tokenId, bytes data);
-
-    modifier onlyGovernance() {
-        if (msg.sender == governance) {
-            _;
-        } else {
-            revert OnlyGovernance();
-        }
-    }
 
     /**
      * @dev Contract initializer. For new `BridgeManager` versions replace `initializer` modifier by `reinitializer(v)`
@@ -73,15 +64,6 @@ contract BridgeManager is IERC721Receiver, Initializable, UUPSUpgradeable, Bridg
         governance = _governance;
         UBI = _UBI;
         fUBI = _fUBI;
-    }
-
-    /**
-     * @dev Transfers governance rights to a new address.
-     * @param _newGovernance The new governance address.
-     */
-    function transferGovernance(address _newGovernance) external {
-        governance = _newGovernance;
-        emit GovernanceTransferred(governance, _newGovernance);
     }
 
     /**

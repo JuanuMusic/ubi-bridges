@@ -17,7 +17,8 @@
   },
   "homepage": "https://github.com/JuanuMusic/ubi-bridges#readme",
   "dependencies": {
-    "@maticnetwork/fx-portal": "github:fx-portal/contracts"
+    "@maticnetwork/fx-portal": "github:fx-portal/contracts",
+    "@maticnetwork/pos-portal": "^1.5.2"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.6",
