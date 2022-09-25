@@ -7,6 +7,7 @@ import "../interfaces/IUBIL2.sol";
 
 
 contract UBIPolygon is IUBIL2, ChildMintableERC20, Governable {
+
     struct AccountInfo {
         uint256 incomingRate;
         uint256 accruedSince;
@@ -53,7 +54,7 @@ contract UBIPolygon is IUBIL2, ChildMintableERC20, Governable {
     }
 
     /// @dev Adds a specified accrual rate to an account. Only executed by the bridge.
-    function addAccrual(address account, uint256 rate) public override onlyBridge {
+    function addAccrual(address recipient, uint256 sourceTokenId, uint256 rate, bytes proof) public override onlyBridge {
         require(msg.sender == ubiBridge, "can only be called by bridge");
         consolidateBalance(account);
         accountInfo[account].incomingRate += rate;
@@ -61,15 +62,13 @@ contract UBIPolygon is IUBIL2, ChildMintableERC20, Governable {
     }
 
     /// @dev Subtracts a specified accrual rate from an account. Only executed by the bridge.
-    function subAccrual(address account, uint256 rate) public override onlyBridge {
+    function subAccrual(address source, address recipient, uint256 sourceTokenId, uint256 rate, bytes proof) public override onlyBridge {
         require(msg.sender == ubiBridge, "can only be called by bridge");
         consolidateBalance(account);
-        accountInfo[account].incomingRate -= rate;
+        accountInfo[account].incom
+        ingRate -= rate;
         emit AccrualDecreased(account, rate);
     }
 
-
-    function moveBalanceToL1(uint256 balanace) public override {
-
-    }
+    function cancelDelegation()
 }

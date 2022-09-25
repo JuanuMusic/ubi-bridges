@@ -542,7 +542,7 @@ contract AccessControlMixin is AccessControl {
 // File: contracts/child/ChildToken/IChildToken.sol
 
 interface IChildToken {
-    function deposit(address user, bytes calldata depositData) external;
+    //function deposit(address user, bytes calldata depositData) external;
 }
 
 // File: contracts/common/Initializable.sol
@@ -809,16 +809,5 @@ contract ChildMintableERC20 is
      */
     function withdraw(uint256 amount) external {
         _burn(_msgSender(), amount);
-    }
-
-    /**
-     * @notice Example function to handle minting tokens on matic chain
-     * @dev Minting can be done as per requirement,
-     * This implementation allows only admin to mint tokens but it can be changed as per requirement
-     * @param user user for whom tokens are being minted
-     * @param amount amount of token to mint
-     */
-    function mint(address user, uint256 amount) public only(DEFAULT_ADMIN_ROLE) {
-        _mint(user, amount);
     }
 }

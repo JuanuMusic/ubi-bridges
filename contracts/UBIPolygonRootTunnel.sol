@@ -8,13 +8,14 @@ import './interfaces/IUBI.sol';
 import './interfaces/IFUBI.sol';
 import './interfaces/IBridge.sol';
 
-contract PolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
+contract UBIPolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
     address UBI;
     address fUBI;
     address bridgeManager;
     bytes public latestData;
 
     bytes32 public constant FUBI_DEPOSIT = keccak256('FUBI_DEPOSIT');
+    bytes32 public constant FUBI_CANCELLED_ON_L2 = keccak256('FUBI_CANCELLED_ON_L2');
 
     /// @dev Event emited when a FUBI has been deposited to the bridge.
     event FUBIDeposited(address indexed sourceHuman, address indexed depositer, uint256 id);
@@ -29,6 +30,11 @@ contract PolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
         fUBI = _fUBI;
     }
 
+    modifier onlyBridgeManager() {
+        require(msg.sender == "Only Bridge Manager can call this");
+        _;
+    }
+
     /// @dev set the UBI address.
     function setUBI(address _UBI) public onlyOwner {
         UBI = _UBI;
@@ -40,14 +46,21 @@ contract PolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
     }
 
     function _processMessageFromChild(bytes memory data) internal override {
-        //TODO: Implement later
+        // decode incoming data
+        (bytes32 syncType, bytes memory syncData) = abi.decode(data, (bytes32, bytes));
+        if(syncType == FUBI_CANCELLED_ON_L2) {
+            (address sender, uint256 ratePerSecond, uint256 depositTime, uint256 tokenId) = abi.decode(syncData, (address, uint256, uint256, uint256));
+            require(fubiHash[tokenId] == bytes32(0), "token already bridged");
+        } else {
+            revert("FxERC721ChildTunnel: INVALID_SYNC_TYPE");
+        }
     }
 
     function bridgeAmount(
         uint256 chainId,
         uint256 amount,
         bytes calldata data
-    ) external override {
+    ) external override onlyBridgeManager {
         // TODO: Implement later
     }
 
@@ -55,7 +68,7 @@ contract PolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
         uint256 chainId,
         uint256 tokenId,
         bytes calldata data
-    ) external override {
+    ) external override onlyBridgeManager {
         // require(IUBI(ubi).isDelegator(msg.sender), 'only delegator can deposit');
         if (msg.sender != bridgeManager) {
             revert('OnlyBridgeManager');
