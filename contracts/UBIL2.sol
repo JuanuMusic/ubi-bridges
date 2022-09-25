@@ -1,14 +1,18 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IUBIL2.sol";
 
 
-contract UBIL2 is IUBIL2, ERC20, Ownable {
-    mapping(address => uint256) public incomingRate;
-    mapping(address => uint256) public accruedSince;
+contract UBIL2 is IUBIL2, ERC20Burnable, Ownable {
+    struct AccountInfo {
+        uint256 incomingRate;
+        uint256 accruedSince;
+    }
+    mapping(address => AccountInfo) public accountInfo;
+
     address public ubiBridge;
 
     event AccrualIncreased(address indexed sender, uint256 rate);
@@ -20,7 +24,7 @@ contract UBIL2 is IUBIL2, ERC20, Ownable {
         _;
     }
 
-    constructor(string memory pName, string memory pSymbol) ERC20(pName, pSymbol) {   
+    constructor(string memory pName, string memory pSymbol) ERC20Burnable(pName, pSymbol) {   
     }
 
     function setUBIBridge(address pUBIBridge) public onlyOwner {
@@ -34,23 +38,23 @@ contract UBIL2 is IUBIL2, ERC20, Ownable {
 
     /// @dev Accrued balance since last accrual. This is the amount of UBI that has been accrued since the last time the balance consolidated.
     function getAccruedBalance(address account) public view returns(uint256) {
-        if(accruedSince[account] == 0) {
+        if(accountInfo[account].accruedSince == 0) {
             return 0;
         }
-        return (block.timestamp - accruedSince[account]) * incomingRate[account];
+        return (block.timestamp - accountInfo[account].accruedSince) * accountInfo[account].incomingRate;
     }
 
     /// @dev Consolidates the balance of the account.
     function consolidateBalance(address account) internal {
         super._mint(account, getAccruedBalance(account));
-        accruedSince[account] = block.timestamp;
+        accountInfo[account].accruedSince = block.timestamp;
     }
 
     /// @dev Adds a specified accrual rate to an account. Only executed by the bridge.
     function addAccrual(address account, uint256 rate) public override onlyBridge {
         require(msg.sender == ubiBridge, "can only be called by bridge");
         consolidateBalance(account);
-        incomingRate[account] += rate;
+        accountInfo[account].incomingRate += rate;
         emit AccrualIncreased(account, rate);
     }
 
@@ -58,7 +62,7 @@ contract UBIL2 is IUBIL2, ERC20, Ownable {
     function subAccrual(address account, uint256 rate) public override onlyBridge {
         require(msg.sender == ubiBridge, "can only be called by bridge");
         consolidateBalance(account);
-        incomingRate[account] -= rate;
+        accountInfo[account].incomingRate -= rate;
         emit AccrualDecreased(account, rate);
     }
 
@@ -66,5 +70,15 @@ contract UBIL2 is IUBIL2, ERC20, Ownable {
     function addBalance(address account, uint256 value) public override onlyBridge {
         require(value > 0, "value must be greater than 0");
         super._mint(account, value);
+    }
+
+    /// @dev Adds the specified balance to the account. Only executed by the bridge.
+    function subBalance(address account, uint256 value) public override onlyBridge {
+        require(balanceOf(account) - value >= 0, "value lowerthan zero");
+        super._burn(account, value);
+    }
+
+    function moveBalanceToL1(uint256 balanace) public override {
+
     }
 }
