@@ -43,7 +43,8 @@ contract UBI2PolygonChildTunnel is FxBaseChildTunnel, Ownable {
         if (syncType == FUBI_DEPOSIT) {
             _syncFUBIDeposit(syncData);
         } else if (syncType == UBI_DEPOSIT) {
-            _syncUBIDeposit(syncData);
+            revert("USE MAPPER");
+            //_syncUBIDeposit(syncData);
         } else {
             revert("FxERC721ChildTunnel: INVALID_SYNC_TYPE");
         }
@@ -55,11 +56,11 @@ contract UBI2PolygonChildTunnel is FxBaseChildTunnel, Ownable {
         emit FUBIDepositReceived(sender, ratePerSecond, depositTime, tokenId);
     }
 
-    function _syncUBIDeposit(bytes memory syncData) internal {
-        (address sender, uint256 amount, uint256 depositTime) = abi.decode(syncData, (address, uint256, uint256));
-        IUBIL2(ubi).addBalance(sender, amount);
-        emit UBIDepositReceived(sender, amount, depositTime);
-    }
+    // function _syncUBIDeposit(bytes memory syncData) internal {
+    //     (address sender, uint256 amount, uint256 depositTime) = abi.decode(syncData, (address, uint256, uint256));
+    //     IUBIL2(ubi).addBalance(sender, amount);
+    //     emit UBIDepositReceived(sender, amount, depositTime);
+    // }
 
 
 
