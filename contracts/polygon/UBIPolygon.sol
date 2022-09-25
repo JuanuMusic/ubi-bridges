@@ -68,17 +68,6 @@ contract UBIPolygon is IUBIL2, ChildMintableERC20, Governable {
         emit AccrualDecreased(account, rate);
     }
 
-    /// @dev Adds the specified balance to the account. Only executed by the bridge.
-    function addBalance(address account, uint256 value) public override onlyBridge {
-        require(value > 0, "value must be greater than 0");
-        super._mint(account, value);
-    }
-
-    /// @dev Adds the specified balance to the account. Only executed by the bridge.
-    function subBalance(address account, uint256 value) public override onlyBridge {
-        require(balanceOf(account) - value >= 0, "value lowerthan zero");
-        super._burn(account, value);
-    }
 
     function moveBalanceToL1(uint256 balanace) public override {
 
