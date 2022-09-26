@@ -5,10 +5,10 @@ import "@maticnetwork/fx-portal/contracts/tunnel/FxBaseChildTunnel.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/IUBIL2.sol";
+import "../interfaces/IUBIL2.sol";
 
 
-contract UBI2PolygonChild is FxBaseChildTunnel, Ownable {
+contract UBIPolygonChildTunnel is FxBaseChildTunnel, Ownable {
     address ubi;
     bytes public latestData;
     
@@ -69,18 +69,18 @@ contract UBI2PolygonChild is FxBaseChildTunnel, Ownable {
 
     function _syncUBIDeposit(bytes memory syncData) internal {
         (address source, uint256 amount, uint256 depositTime) = abi.decode(syncData, (address, uint256, uint256));
-        IUBIL2(ubi).addBalance(source, amount);
+        IUBIL2(ubi).mint(source, amount);
         emit UBIDepositReceived(source, amount, depositTime);
     }
 
 
-    function onCancelDelegation(address tokenOwner, uint256 tokenId, uint256 ratePerSecond) external onlyUBI {
+    function onCancelDelegation(address source, uint256 tokenId, uint256 ratePerSecond) external onlyUBI {
         require(msg.sender == ubi, "Only UBI contract can cancel delegations");
-        require(fubiHash[tokenId] == keccak256(abi.encode(sender, tokenId, ratePerSecond), "invalid proof");
+        require(fubiHash[tokenId] == keccak256(abi.encode(source, tokenId, ratePerSecond)), "invalid proof");
 
         // TODO: Add origin chainId in the message, to avoid problems in case we have more bridges        
         bytes memory message = abi.encode(tokenId, block.timestamp);
-        _sendMessageToChild(message);
+        _sendMessageToRoot(message);
     }
 
 

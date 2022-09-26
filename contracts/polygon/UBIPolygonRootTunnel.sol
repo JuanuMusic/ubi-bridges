@@ -4,9 +4,9 @@ pragma solidity ^0.8.0;
 import '@maticnetwork/fx-portal/contracts/tunnel/FxBaseRootTunnel.sol';
 import '@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
-import './interfaces/IUBI.sol';
-import './interfaces/IFUBI.sol';
-import './interfaces/IBridge.sol';
+import '../interfaces/IUBI.sol';
+import '../interfaces/IFUBI.sol';
+import '../interfaces/IBridge.sol';
 
 contract UBIPolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
     address UBI;
@@ -32,7 +32,7 @@ contract UBIPolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
     }
 
     modifier onlyBridgeManager() {
-        require(msg.sender == "Only Bridge Manager can call this");
+        require(msg.sender == bridgeManager, "Only Bridge Manager can call this");
         _;
     }
 
@@ -50,8 +50,8 @@ contract UBIPolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
         // decode incoming data
         (bytes32 syncType, bytes memory syncData) = abi.decode(data, (bytes32, bytes));
         if(syncType == FUBI_CANCELLED_ON_L2) {
-            (uint256 tokenId, uint256 cancelationTime) = abi.decode(syncData, (address, uint256, uint256, uint256));
-            
+            (uint256 tokenId, uint256 cancellationTime) = abi.decode(syncData, (uint256, uint256));
+            revert("TODO: IMPLEMENT CANCELATION FROM L2");
         } else {
             revert("FxERC721ChildTunnel: INVALID_SYNC_TYPE");
         }
@@ -96,7 +96,7 @@ contract UBIPolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
         return id;
     }
 
-    function onDelegationCanceled(uint256 tokenId) {
+    function onDelegationCanceled(uint256 tokenId) external onlyBridgeManager {
         // ACA TIENE QUE CHEQUEAR QUE EL BRIDGE MAAGER LO HAYA MARCADO.
     }
 }
