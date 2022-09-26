@@ -13,6 +13,7 @@ contract UBIPolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
     address fUBI;
     address bridgeManager;
     bytes public latestData;
+    mapping(uint256 => bool) bridgedFubis;
 
     bytes32 public constant FUBI_DEPOSIT = keccak256('FUBI_DEPOSIT');
     bytes32 public constant FUBI_CANCELLED_ON_L2 = keccak256('FUBI_CANCELLED_ON_L2');
@@ -49,8 +50,8 @@ contract UBIPolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
         // decode incoming data
         (bytes32 syncType, bytes memory syncData) = abi.decode(data, (bytes32, bytes));
         if(syncType == FUBI_CANCELLED_ON_L2) {
-            (address sender, uint256 ratePerSecond, uint256 depositTime, uint256 tokenId) = abi.decode(syncData, (address, uint256, uint256, uint256));
-            require(fubiHash[tokenId] == bytes32(0), "token already bridged");
+            (uint256 tokenId, uint256 cancelationTime) = abi.decode(syncData, (address, uint256, uint256, uint256));
+            
         } else {
             revert("FxERC721ChildTunnel: INVALID_SYNC_TYPE");
         }
@@ -78,6 +79,9 @@ contract UBIPolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
         if (!isActive) {
             revert('InactiveFlow');
         }
+
+        require(!bridgedFubis[tokenId], "flow already bridged");
+        bridgedFubis[tokenId] = true;
         // TODO: Add origin chainId in the message, to avoid problems in case we have more bridges
         bytes memory message = abi.encode(FUBI_DEPOSIT, abi.encode(sender, ratePerSecond, block.timestamp, tokenId));
         _sendMessageToChild(message);
@@ -90,5 +94,9 @@ contract UBIPolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
             id := chainid()
         }
         return id;
+    }
+
+    function onDelegationCanceled(uint256 tokenId) {
+        // ACA TIENE QUE CHEQUEAR QUE EL BRIDGE MAAGER LO HAYA MARCADO.
     }
 }

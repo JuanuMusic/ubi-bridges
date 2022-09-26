@@ -54,7 +54,7 @@ contract UBIPolygon is IUBIL2, ChildMintableERC20, Governable {
     }
 
     /// @dev Adds a specified accrual rate to an account. Only executed by the bridge.
-    function addAccrual(address recipient, uint256 sourceTokenId, uint256 rate, bytes proof) public override onlyBridge {
+    function addAccrual(address account, uint256 rate) public override onlyBridge {
         require(msg.sender == ubiBridge, "can only be called by bridge");
         consolidateBalance(account);
         accountInfo[account].incomingRate += rate;
@@ -70,5 +70,7 @@ contract UBIPolygon is IUBIL2, ChildMintableERC20, Governable {
         emit AccrualDecreased(account, rate);
     }
 
-    function cancelDelegation()
+    function cancelDelegation(uint256 tokenId, uint256 ratePerSecond) external {
+        UBI2PolygonChild.onCancelDelegation(msg.sender, token, uint256 ratePerSecond);
+    }
 }

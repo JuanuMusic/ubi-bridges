@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IUBIL2.sol";
 
+
 contract UBI2PolygonChild is FxBaseChildTunnel, Ownable {
     address ubi;
     bytes public latestData;
@@ -24,6 +25,11 @@ contract UBI2PolygonChild is FxBaseChildTunnel, Ownable {
     mapping(uint256 => bytes32) fubiHash;
 
     constructor(address _fxChild) FxBaseChildTunnel(_fxChild) {
+    }
+
+    modifier onlyUBI {
+        msg.sender == ubi;
+        _;
     }
 
     /// @dev set the UBI address.
@@ -52,26 +58,28 @@ contract UBI2PolygonChild is FxBaseChildTunnel, Ownable {
     }
 
     function _syncFUBIDeposit(bytes memory syncData) internal {
-        (address sender, uint256 ratePerSecond, uint256 depositTime, uint256 tokenId) = abi.decode(syncData, (address, uint256, uint256, uint256));
+        (address source, uint256 ratePerSecond, uint256 depositTime, uint256 tokenId) = abi.decode(syncData, (address, uint256, uint256, uint256));
         require(fubiHash[tokenId] == bytes32(0), "token already bridged");
         
         // Set the hash of the token
-        fubiHash[tokenId] = keccak256(abi.encode(sender, tokenId, ratePerSecond);
-        IUBIL2(ubi).addAccrual(sender, ratePerSecond);
-        emit FUBIDepositReceived(sender, ratePerSecond, depositTime, tokenId);
+        fubiHash[tokenId] = keccak256(abi.encode(source, tokenId, ratePerSecond);
+        IUBIL2(ubi).addAccrual(source, ratePerSecond);
+        emit FUBIDepositReceived(source, ratePerSecond, depositTime, tokenId);
     }
 
     function _syncUBIDeposit(bytes memory syncData) internal {
-        (address sender, uint256 amount, uint256 depositTime) = abi.decode(syncData, (address, uint256, uint256));
-        IUBIL2(ubi).addBalance(sender, amount);
-        emit UBIDepositReceived(sender, amount, depositTime);
+        (address source, uint256 amount, uint256 depositTime) = abi.decode(syncData, (address, uint256, uint256));
+        IUBIL2(ubi).addBalance(source, amount);
+        emit UBIDepositReceived(source, amount, depositTime);
     }
 
 
-    function onCancelDelegation(bytes memory message) external  {
+    function onCancelDelegation(address tokenOwner, uint256 tokenId, uint256 ratePerSecond) external onlyUBI {
         require(msg.sender == ubi, "Only UBI contract can cancel delegations");
-        // TODO: Add origin chainId in the message, to avoid problems in case we have more bridges
-        bytes memory message = abi.encode(FUBI_DEPOSIT, abi.encode(sender, ratePerSecond, block.timestamp, tokenId));
+        require(fubiHash[tokenId] == keccak256(abi.encode(sender, tokenId, ratePerSecond);, "invalid proof");
+
+        // TODO: Add origin chainId in the message, to avoid problems in case we have more bridges        
+        bytes memory message = abi.encode(tokenId, block.timestamp);
         _sendMessageToChild(message);
     }
 
