@@ -7,12 +7,13 @@ import "../security/Governable.sol";
 import "../interfaces/IUBIL2.sol";
 import "./UBIPolygonChildTunnel.sol";
 
+error NotChildTunnel();
 
 contract UBIPolygon is IUBIL2, ERC20, Governable {
 
     struct AccountInfo {
-        uint256 incomingRate;
         uint256 accruedSince;
+        uint256 incomingRate;
     }
     mapping(address => AccountInfo) public accountInfo;
 
@@ -22,14 +23,11 @@ contract UBIPolygon is IUBIL2, ERC20, Governable {
     event AccrualDecreased(address indexed sender, uint256 rate);
 
     modifier onlyChildTunnel {
-        require(childTunnel != address(0), "childTunnel not set");
-        require(msg.sender == childTunnel, "sender is not bridge");
+        if(msg.sender != childTunnel) revert NotChildTunnel();
         _;
     }
 
-    constructor(string memory pName,
-        string memory pSymbol,
-        address pChildTunnel) ERC20(pName, pSymbol) {
+    constructor(address pChildTunnel) ERC20("Universal Basic Income", "UBI") {
             childTunnel = pChildTunnel;   
     }
 
@@ -56,11 +54,8 @@ contract UBIPolygon is IUBIL2, ERC20, Governable {
         accountInfo[account].accruedSince = block.timestamp;
     }
 
-    
-
     /// @dev Adds a specified accrual rate to an account. Only executed by the bridge.
-    function addAccrual(address account, uint256 rate) public override onlyChildTunnel {
-        require(msg.sender == childTunnel, "can only be called by bridge");
+    function addAccrual(address account, uint256 rate) public override onlyChildTunnel {    
         consolidateBalance(account);
         accountInfo[account].incomingRate += rate;
         emit AccrualIncreased(account, rate);
@@ -68,7 +63,6 @@ contract UBIPolygon is IUBIL2, ERC20, Governable {
 
     /// @dev Subtracts a specified accrual rate from an account. Only executed by the bridge.
     function subAccrual(address account, uint256 rate) public override onlyChildTunnel {
-        require(msg.sender == childTunnel, "can only be called by bridge");
         consolidateBalance(account);
         accountInfo[account].incomingRate -= rate;
         emit AccrualDecreased(account, rate);
