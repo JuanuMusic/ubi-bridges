@@ -62,7 +62,7 @@ contract UBI2PolygonChild is FxBaseChildTunnel, Ownable {
         require(fubiHash[tokenId] == bytes32(0), "token already bridged");
         
         // Set the hash of the token
-        fubiHash[tokenId] = keccak256(abi.encode(source, tokenId, ratePerSecond);
+        fubiHash[tokenId] = keccak256(abi.encode(source, tokenId, ratePerSecond));
         IUBIL2(ubi).addAccrual(source, ratePerSecond);
         emit FUBIDepositReceived(source, ratePerSecond, depositTime, tokenId);
     }
@@ -76,7 +76,7 @@ contract UBI2PolygonChild is FxBaseChildTunnel, Ownable {
 
     function onCancelDelegation(address tokenOwner, uint256 tokenId, uint256 ratePerSecond) external onlyUBI {
         require(msg.sender == ubi, "Only UBI contract can cancel delegations");
-        require(fubiHash[tokenId] == keccak256(abi.encode(sender, tokenId, ratePerSecond);, "invalid proof");
+        require(fubiHash[tokenId] == keccak256(abi.encode(sender, tokenId, ratePerSecond), "invalid proof");
 
         // TODO: Add origin chainId in the message, to avoid problems in case we have more bridges        
         bytes memory message = abi.encode(tokenId, block.timestamp);

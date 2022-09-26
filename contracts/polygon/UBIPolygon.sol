@@ -65,8 +65,7 @@ contract UBIPolygon is IUBIL2, ChildMintableERC20, Governable {
     function subAccrual(address source, address recipient, uint256 sourceTokenId, uint256 rate, bytes proof) public override onlyBridge {
         require(msg.sender == ubiBridge, "can only be called by bridge");
         consolidateBalance(account);
-        accountInfo[account].incom
-        ingRate -= rate;
+        accountInfo[account].incomingRate -= rate;
         emit AccrualDecreased(account, rate);
     }
 
