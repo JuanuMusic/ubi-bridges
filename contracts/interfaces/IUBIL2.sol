@@ -7,4 +7,7 @@ interface IUBIL2 {
 
     /// @dev Subtracts a specified accrual rate from an account.
     function subAccrual(address account, uint256 rate) external;
+
+    /// @dev Mints an amount to an account.
+    function mint(address account, uint256 amount) external;
 }
