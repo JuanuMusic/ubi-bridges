@@ -1,13 +1,14 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {Governable} from "./security/Governable.sol";
 import {IBridge} from "./interfaces/IBridge.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import {IFUBI} from "./interfaces/IFUBI.sol";
 import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
-import {Governable} from "./security/Governable.sol";
 
 abstract contract BridgeManagerStorage {
     /**
@@ -17,7 +18,7 @@ abstract contract BridgeManagerStorage {
      * and also at https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#modifying-your-contracts.
      */
     mapping(uint256 => address) public bridgeByChainId;
-    
+    mapping(uint256 => bool) public bridgedFlows;
     address public UBI;
     address public fUBI;
 
@@ -40,6 +41,8 @@ abstract contract BridgeManagerStorage {
  */
 contract BridgeManager is IERC721Receiver, Initializable, UUPSUpgradeable, Governable, BridgeManagerStorage {
     error InvalidAddress();
+    error OnlyActive();
+    error OnlySource();
     error OnlyUBI();
     error UnsupportedChain();
     error UnsupportedNft();
@@ -104,29 +107,43 @@ contract BridgeManager is IERC721Receiver, Initializable, UUPSUpgradeable, Gover
         uint256 _tokenId,
         bytes calldata _data
     ) external {
+        _validateFlowBridging(msg.sender, _tokenId);
         IERC721(fUBI).transferFrom(msg.sender, address(this), _tokenId);
         _bridgeFlow(_chainId, _tokenId, _data);
     }
 
     /**
      * @dev Hook used to enable ERC-721 token bridging through transfers to this contract.
+     * @param _previousOwner The addess that was owning the NFT just before this
      * @param _tokenId The ID of the bridged ERC-721 token.
      * @param _data Arbitrary data passed by the user. It should first contain the chain ID encoded, followed by any
      * arbitrary data that might be required by the expected bridge implementation.
      */
     function onERC721Received(
-        address, /* operator */
-        address, /* from */
+        address,
+        address _previousOwner,
         uint256 _tokenId,
         bytes calldata _data
     ) public override returns (bytes4) {
         if (msg.sender == fUBI) {
+            _validateFlowBridging(_previousOwner, _tokenId);
             (uint256 chainId, bytes memory bridgeData) = abi.decode(_data, (uint256, bytes));
             _bridgeFlow(chainId, _tokenId, bridgeData);
         } else {
             revert UnsupportedNft();
         }
         return this.onERC721Received.selector;
+    }
+
+    // TODO: on cancel!
+
+    function _validateFlowBridging(address _previousOwner, uint256 _tokenId) internal view {
+        (, , address source, bool isActive) = IFUBI(fUBI).getFlow(_tokenId);
+        if (!isActive) {
+            revert OnlyActive();
+        } else if (_previousOwner != source) {
+            revert OnlySource();
+        }
     }
 
     /**
@@ -141,6 +158,7 @@ contract BridgeManager is IERC721Receiver, Initializable, UUPSUpgradeable, Gover
         uint256 _tokenId,
         bytes memory _data
     ) internal {
+        bridgedFlows[_tokenId] = true;
         address bridge = _getBridgeAddressIfSupported(_chainId);
         IBridge(bridge).bridgeFlow(_chainId, _tokenId, _data);
         emit FlowBridged(bridge, _chainId, _tokenId, _data);

@@ -6,9 +6,11 @@ interface IFUBI {
         external
         view
         returns (
-            uint256 ratePerSecond, // The rate of UBI to drip to this Flow from the current accrued value
+            uint256 ratePerSecond,
             uint256 startTime,
-            address sender,
+            address source,
             bool isActive
         );
+
+    function burn(uint256 tokenId) external;
 }
