@@ -41,7 +41,7 @@ contract UBIPolygonChildTunnel is FxBaseChildTunnel, Ownable {
     // Internal methods
     //
     function _processMessageFromRoot(
-        uint256, /* stateId */
+        uint256 stateId,
         address sender,
         bytes memory data
     ) internal override validateSender(sender) {
@@ -77,6 +77,10 @@ contract UBIPolygonChildTunnel is FxBaseChildTunnel, Ownable {
     function onCancelDelegation(address source, uint256 tokenId, uint256 ratePerSecond) external onlyUBI {
         require(msg.sender == ubi, "Only UBI contract can cancel delegations");
         require(fubiHash[tokenId] == keccak256(abi.encode(source, tokenId, ratePerSecond)), "invalid proof");
+
+        // Subtract accrual to the source
+        IUBIL2(ubi).subAccrual(source, ratePerSecond);
+        fubiHash[tokenId] = 0;
 
         // TODO: Add origin chainId in the message, to avoid problems in case we have more bridges        
         bytes memory message = abi.encode(tokenId, block.timestamp);
