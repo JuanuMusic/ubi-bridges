@@ -44,9 +44,8 @@ contract UBIPolygonChildTunnelTest is Test {
         assertEq(incomingRate, rate);
     }
 
-    function testUBIDepositCorrectly() public {
+    function testUBIDepositCorrectly(uint256 amount) public {
         vm.startPrank(fxChild);
-        uint256 amount = 1 ether;
         bytes memory data = abi.encode(UBI_DEPOSIT, abi.encode(user1, amount, block.timestamp));
         childTunnel.processMessageFromRoot(1, fxRootTunnel, data);
         uint256 balance = ubi.balanceOf(user1);
@@ -58,13 +57,13 @@ contract UBIPolygonChildTunnelTest is Test {
     }
 
     function testOnCancelDelegation() public {
+        uint256 rate = 100;
         vm.startPrank(fxChild);
-        uint256 rate = 200;
         depositFUBI(user1, rate, 11);
         vm.stopPrank();
         
         vm.startPrank(address(ubi));
-        childTunnel.onCancelDelegation(user1, 11, 200);
+        childTunnel.onCancelDelegation(user1, 11, rate);
         (uint256 accruedSince, uint256 incomingRate) = ubi.accountInfo(user1);
         assertEq(incomingRate, 0);
     }

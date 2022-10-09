@@ -14,16 +14,16 @@ contract UBIPolygonTest is Test {
         ubi = new UBIPolygon(childTunnel);
     }
 
-    function testAddAccrual() public {
+    function testAddAccrual(uint256 amount) public {
         vm.startPrank(childTunnel);
-        ubi.addAccrual(user1, 100);
+        ubi.addAccrual(user1, amount);
         (uint256 accruedSince, uint256 incomingRate) = ubi.accountInfo(user1);
-        assertEq(incomingRate, 100);
+        assertEq(incomingRate, amount);
     }
 
-    function testAddAccrualAdNotChildTunnel() public {
+    function testAddAccrualAdNotChildTunnel(uint256 amount) public {
         vm.expectRevert(NotChildTunnel.selector);
-        ubi.addAccrual(user1, 100);
+        ubi.addAccrual(user1, amount);
     }
 
     function testSubAccrual() public {
@@ -34,9 +34,9 @@ contract UBIPolygonTest is Test {
         assertEq(incomingRate, 75);
     }
 
-    function testSubAccrualAdNotChildTunnel() public {
+    function testSubAccrualAdNotChildTunnel(uint256 amount) public {
         vm.expectRevert(NotChildTunnel.selector);
-        ubi.subAccrual(user1, 100);
+        ubi.subAccrual(user1, amount);
         (uint256 accruedSince, uint256 incomingRate) = ubi.accountInfo(user1);
         assertEq(incomingRate, 0);
     }
@@ -45,22 +45,21 @@ contract UBIPolygonTest is Test {
         revert("TODO: Implement time-dependant test for getAccruedBalance");
     }
 
-    function testConsolidateBalanceOnAddAccrual() public {
+    function testConsolidateBalanceOnAddAccrual(uint256 amount) public {
         vm.startPrank(childTunnel);
-        ubi.addAccrual(user1, 100); 
+        ubi.addAccrual(user1, amount); 
         revert("TODO: Implement time-dependant test of consolidate balance");
     }
 
-    function testConsolidateBalanceOnSubAccrual() public {
+    function testConsolidateBalanceOnSubAccrual(uint256 amount) public {
         vm.startPrank(childTunnel);
-        ubi.addAccrual(user1, 100); 
+        ubi.addAccrual(user1, amount); 
         revert("TODO: Implement time-dependant test of consolidate balance");
     }
 
-    function testMint() public {
+    function testMint(uint256 amount) public {
         vm.startPrank(childTunnel);
-        uint256 toMint  = 100;
-        ubi.mint(user1, toMint);
-        assertEq(ubi.balanceOf(user1), toMint);
+        ubi.mint(user1, amount);
+        assertEq(ubi.balanceOf(user1), amount);
     }
 }

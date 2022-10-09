@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../interfaces/IUBIL2.sol";
 
+error InvalidRatePerSecond(uint256 rate);
 
 contract UBIPolygonChildTunnel is FxBaseChildTunnel, Ownable {
     address public ubi;
@@ -59,8 +60,8 @@ contract UBIPolygonChildTunnel is FxBaseChildTunnel, Ownable {
 
     function _syncFUBIDeposit(bytes memory syncData) internal {
         (address source, uint256 ratePerSecond, uint256 depositTime, uint256 tokenId) = abi.decode(syncData, (address, uint256, uint256, uint256));
+        if(ratePerSecond <= 0) revert InvalidRatePerSecond(ratePerSecond);
         require(fubiHash[tokenId] == bytes32(0), "token already bridged");
-        
         // Set the hash of the token
         fubiHash[tokenId] = keccak256(abi.encode(source, tokenId, ratePerSecond));
         IUBIL2(ubi).addAccrual(source, ratePerSecond);
@@ -76,6 +77,7 @@ contract UBIPolygonChildTunnel is FxBaseChildTunnel, Ownable {
 
     function onCancelDelegation(address source, uint256 tokenId, uint256 ratePerSecond) external onlyUBI {
         require(msg.sender == ubi, "Only UBI contract can cancel delegations");
+        if(ratePerSecond <= 0) revert InvalidRatePerSecond(ratePerSecond);
         require(fubiHash[tokenId] == keccak256(abi.encode(source, tokenId, ratePerSecond)), "invalid proof");
 
         // Subtract accrual to the source
