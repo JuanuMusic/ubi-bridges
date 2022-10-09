@@ -25,6 +25,12 @@ contract UBIPolygonChildTunnelTest is Test {
         childTunnel.setUBI(address(ubi));
     }
 
+    function testSetUBI() public {
+        address ubiAddress = address(28);
+        childTunnel.setUBI(ubiAddress);
+        assertEq(childTunnel.ubi(), ubiAddress);
+    }
+
     function depositFUBI(address source, uint256 rate, uint256 tokenId) internal {
         bytes memory data = abi.encode(FUBI_DEPOSIT, abi.encode(user1, rate, block.timestamp, tokenId));
         childTunnel.processMessageFromRoot(1, fxRootTunnel, data);
@@ -48,7 +54,7 @@ contract UBIPolygonChildTunnelTest is Test {
     }
 
     function testMessageFromRootStateID() public {
-        revert("TODO: implement stateID and sender (messageFromRoot)");
+        revert("TODO: should we implement stateID validation tests??");
     }
 
     function testOnCancelDelegation() public {

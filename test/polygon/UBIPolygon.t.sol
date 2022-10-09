@@ -24,7 +24,43 @@ contract UBIPolygonTest is Test {
     function testAddAccrualAdNotChildTunnel() public {
         vm.expectRevert(NotChildTunnel.selector);
         ubi.addAccrual(user1, 100);
+    }
+
+    function testSubAccrual() public {
+        vm.startPrank(childTunnel);
+        ubi.addAccrual(user1, 100);
+        ubi.subAccrual(user1, 25);
+        (uint256 accruedSince, uint256 incomingRate) = ubi.accountInfo(user1);
+        assertEq(incomingRate, 75);
+    }
+
+    function testSubAccrualAdNotChildTunnel() public {
+        vm.expectRevert(NotChildTunnel.selector);
+        ubi.subAccrual(user1, 100);
         (uint256 accruedSince, uint256 incomingRate) = ubi.accountInfo(user1);
         assertEq(incomingRate, 0);
+    }
+
+    function testGetAccruedBalane() public{
+        revert("TODO: Implement time-dependant test for getAccruedBalance");
+    }
+
+    function testConsolidateBalanceOnAddAccrual() public {
+        vm.startPrank(childTunnel);
+        ubi.addAccrual(user1, 100); 
+        revert("TODO: Implement time-dependant test of consolidate balance");
+    }
+
+    function testConsolidateBalanceOnSubAccrual() public {
+        vm.startPrank(childTunnel);
+        ubi.addAccrual(user1, 100); 
+        revert("TODO: Implement time-dependant test of consolidate balance");
+    }
+
+    function testMint() public {
+        vm.startPrank(childTunnel);
+        uint256 toMint  = 100;
+        ubi.mint(user1, toMint);
+        assertEq(ubi.balanceOf(user1), toMint);
     }
 }

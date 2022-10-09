@@ -9,7 +9,7 @@ import "../interfaces/IUBIL2.sol";
 
 
 contract UBIPolygonChildTunnel is FxBaseChildTunnel, Ownable {
-    address ubi;
+    address public ubi;
     bytes public latestData;
     
     /// @dev Sync type for when UBI is deposited on the bridge
