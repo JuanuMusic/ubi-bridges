@@ -42,6 +42,11 @@ contract UBIPolygonChildTunnelTest is Test {
         depositFUBI(user1, rate, 10);
         (uint256 accruedSince, uint256 incomingRate) = ubi.accountInfo(user1);
         assertEq(incomingRate, rate);
+        //  Move 10 seconds
+        vm.warp(block.timestamp + 10);
+        // Assert accrued balance increased correctly
+        assertEq(ubi.accruedBalanceOf(user1), 1000);
+        assertEq(ubi.balanceOf(user1), 1000);
     }
 
     function testUBIDepositCorrectly(uint256 amount) public {

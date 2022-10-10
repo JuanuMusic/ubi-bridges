@@ -37,11 +37,11 @@ contract UBIPolygon is IUBIL2, ERC20, Governable {
 
     /// @dev The balance of the account. Sums consolidated balance + accrued balance.
     function balanceOf(address account) public view override returns(uint256) {
-        return super.balanceOf(account) + getAccruedBalance(account);
+        return super.balanceOf(account) + accruedBalanceOf(account);
     }
 
     /// @dev Accrued balance since last accrual. This is the amount of UBI that has been accrued since the last time the balance consolidated.
-    function getAccruedBalance(address account) public view returns(uint256) {
+    function accruedBalanceOf(address account) public view returns(uint256) {
         if(accountInfo[account].accruedSince == 0) {
             return 0;
         }
@@ -50,7 +50,7 @@ contract UBIPolygon is IUBIL2, ERC20, Governable {
 
     /// @dev Consolidates the balance of the account.
     function consolidateBalance(address account) internal {
-        super._mint(account, getAccruedBalance(account));
+        super._mint(account, accruedBalanceOf(account));
         accountInfo[account].accruedSince = block.timestamp;
     }
 
@@ -70,7 +70,7 @@ contract UBIPolygon is IUBIL2, ERC20, Governable {
 
     /// @dev Consolidates the balance of the account.
     function mint(address account, uint256 amount) external override onlyChildTunnel {
-        super._mint(account, getAccruedBalance(account) + amount);
+        super._mint(account, accruedBalanceOf(account) + amount);
         accountInfo[account].accruedSince = block.timestamp;
     }
 

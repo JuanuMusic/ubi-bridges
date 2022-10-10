@@ -49,12 +49,12 @@ contract UBIPolygonTest is Test {
         ubi.addAccrual(user1, ratePerSecond); 
 
         // Get current balance
-        uint256 curAccruedBalance = ubi.getAccruedBalance(user1);
+        uint256 curAccruedBalance = ubi.accruedBalanceOf(user1);
         console.log("Current block timestamp", block.timestamp);
         // Move forwd 10 secs
         vm.warp(block.timestamp + waitSeconds);
 
-        uint256 newAccruedBalance = ubi.getAccruedBalance(user1);
+        uint256 newAccruedBalance = ubi.accruedBalanceOf(user1);
         console.log("NEW block timestamp", block.timestamp);
 
         console.log(newAccruedBalance, curAccruedBalance + expectedIncrease);
@@ -70,15 +70,15 @@ contract UBIPolygonTest is Test {
         vm.warp(block.timestamp + 10);
 
         // Add accrual (which consolidates balance)
-        assertEq(ubi.getAccruedBalance(user1), 10);
+        assertEq(ubi.accruedBalanceOf(user1), 10);
         assertEq(ubi.balanceOf(user1), 10);
         ubi.addAccrual(user1, 1);
-        assertEq(ubi.getAccruedBalance(user1), 0);
+        assertEq(ubi.accruedBalanceOf(user1), 0);
         assertEq(ubi.balanceOf(user1), 10);
 
         // Move forwd 10 secs
         vm.warp(block.timestamp + 1);
-        assertEq(ubi.getAccruedBalance(user1), 2);
+        assertEq(ubi.accruedBalanceOf(user1), 2);
         assertEq(ubi.balanceOf(user1), 12);
     }
 
@@ -92,15 +92,15 @@ contract UBIPolygonTest is Test {
         vm.warp(block.timestamp + 10);
 
         // Sub accrual (which consolidates balance)
-        assertEq(ubi.getAccruedBalance(user1), 20);
+        assertEq(ubi.accruedBalanceOf(user1), 20);
         assertEq(ubi.balanceOf(user1), 20);
         ubi.subAccrual(user1, 1);
-        assertEq(ubi.getAccruedBalance(user1), 0);
+        assertEq(ubi.accruedBalanceOf(user1), 0);
         assertEq(ubi.balanceOf(user1), 20);
 
         // Move forwd 10 secs
         vm.warp(block.timestamp + 1);
-        assertEq(ubi.getAccruedBalance(user1), 1);
+        assertEq(ubi.accruedBalanceOf(user1), 1);
         assertEq(ubi.balanceOf(user1), 21);
     }
 
