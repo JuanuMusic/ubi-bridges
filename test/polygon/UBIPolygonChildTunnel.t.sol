@@ -71,5 +71,10 @@ contract UBIPolygonChildTunnelTest is Test {
         childTunnel.onCancelDelegation(user1, 11, rate);
         (uint256 accruedSince, uint256 incomingRate) = ubi.accountInfo(user1);
         assertEq(incomingRate, 0);
+
+        //  Move 10 seconds
+        vm.warp(block.timestamp + 10);
+        // Assert accrued balance did not increase
+        assertEq(ubi.accruedBalanceOf(user1), 0);
     }
 }
