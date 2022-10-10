@@ -42,23 +42,66 @@ contract UBIPolygonTest is Test {
     }
 
     function testGetAccruedBalane() public{
-        revert("TODO: Implement time-dependant test for getAccruedBalance");
+        vm.startPrank(childTunnel);
+        uint256 ratePerSecond =100;
+        uint256 waitSeconds = 3600;
+        uint256 expectedIncrease = ratePerSecond * waitSeconds;
+        ubi.addAccrual(user1, ratePerSecond); 
+
+        // Get current balance
+        uint256 curAccruedBalance = ubi.getAccruedBalance(user1);
+        console.log("Current block timestamp", block.timestamp);
+        // Move forwd 10 secs
+        vm.warp(block.timestamp + waitSeconds);
+
+        uint256 newAccruedBalance = ubi.getAccruedBalance(user1);
+        console.log("NEW block timestamp", block.timestamp);
+
+        console.log(newAccruedBalance, curAccruedBalance + expectedIncrease);
     }
 
-    function testConsolidateBalanceOnAddAccrual(uint256 amount) public {
+    function testConsolidateBalanceOnAddAccrual() public {
         vm.startPrank(childTunnel);
-        ubi.addAccrual(user1, amount); 
-        revert("TODO: Implement time-dependant test of consolidate balance");
+        ubi.addAccrual(user1, 1); 
+
+        // Get current balance
+        console.log("Current block timestamp", block.timestamp);
+        // Move forwd 10 secs
+        vm.warp(block.timestamp + 10);
+
+        // Add accrual (which consolidates balance)
+        assertEq(ubi.getAccruedBalance(user1), 10);
+        assertEq(ubi.balanceOf(user1), 10);
+        ubi.addAccrual(user1, 1);
+        assertEq(ubi.getAccruedBalance(user1), 0);
+        assertEq(ubi.balanceOf(user1), 10);
+
+        // Move forwd 10 secs
+        vm.warp(block.timestamp + 1);
+        assertEq(ubi.getAccruedBalance(user1), 2);
+        assertEq(ubi.balanceOf(user1), 12);
     }
 
     function testConsolidateBalanceOnSubAccrual() public {
         vm.startPrank(childTunnel);
-        uint256 amount =10;
-        ubi.addAccrual(user1, amount); 
-        // Move forwd 10 secs
-        vm.warp(10);
+        ubi.addAccrual(user1, 2); 
 
-        assertEq(ubi.balanceOf(user1), amount * 10);
+        // Get current balance
+        console.log("Current block timestamp", block.timestamp);
+        // Move forwd 10 secs
+        vm.warp(block.timestamp + 10);
+
+        // Sub accrual (which consolidates balance)
+        assertEq(ubi.getAccruedBalance(user1), 20);
+        assertEq(ubi.balanceOf(user1), 20);
+        ubi.subAccrual(user1, 1);
+        assertEq(ubi.getAccruedBalance(user1), 0);
+        assertEq(ubi.balanceOf(user1), 20);
+
+        // Move forwd 10 secs
+        vm.warp(block.timestamp + 1);
+        assertEq(ubi.getAccruedBalance(user1), 1);
+        assertEq(ubi.balanceOf(user1), 21);
     }
 
     function testMint(uint256 amount) public {
