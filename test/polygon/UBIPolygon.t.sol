@@ -51,10 +51,14 @@ contract UBIPolygonTest is Test {
         revert("TODO: Implement time-dependant test of consolidate balance");
     }
 
-    function testConsolidateBalanceOnSubAccrual(uint256 amount) public {
+    function testConsolidateBalanceOnSubAccrual() public {
         vm.startPrank(childTunnel);
+        uint256 amount =10;
         ubi.addAccrual(user1, amount); 
-        revert("TODO: Implement time-dependant test of consolidate balance");
+        // Move forwd 10 secs
+        vm.warp(10);
+
+        assertEq(ubi.balanceOf(user1), amount * 10);
     }
 
     function testMint(uint256 amount) public {
