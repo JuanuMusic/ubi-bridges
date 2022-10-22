@@ -8,6 +8,9 @@ import '../interfaces/IUBI.sol';
 import '../interfaces/IFUBI.sol';
 import '../interfaces/IBridge.sol';
 
+error FUBINotBridged(uint256 tokenId);
+error InactiveFlow(uint256 tokenId);
+
 contract UBIPolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
     address UBI;
     address fUBI;
@@ -46,15 +49,34 @@ contract UBIPolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
         fUBI = _fUBI;
     }
 
+    function setBridgeManager(address pBridgeManager) public onlyOwner {
+        bridgeManager = pBridgeManager;
+    }
+
     function _processMessageFromChild(bytes memory data) internal override {
         // decode incoming data
         (bytes32 syncType, bytes memory syncData) = abi.decode(data, (bytes32, bytes));
         if(syncType == FUBI_CANCELLED_ON_L2) {
             (uint256 tokenId, uint256 cancellationTime) = abi.decode(syncData, (uint256, uint256));
-            revert("TODO: IMPLEMENT CANCELATION FROM L2");
+            if(bridgedFubis[tokenId] == false) revert FUBINotBridged(tokenId);
+            uint256 elapsed = block.timestamp - cancellationTime;
+            // Transfer accrued on contract to user
+            (uint256 ratePerSecond, 
+            uint256 startTime,
+            address sender,
+            bool isActive) = IFUBI(fUBI).getFlow(tokenId);
+
+            // TODO: CANCELLATION OF FUBI
+            revert("TODO: cancellation of FUBI");
+            //ubi.cancelDelegation();
+            //ubi.transferFrom(address(this), elapsed * ratePerSecond);
         } else {
             revert("FxERC721ChildTunnel: INVALID_SYNC_TYPE");
         }
+    }
+
+    function receiveMessage(bytes memory inputData) public override onlyBridgeManager {
+        super.receiveMessage(inputData);
     }
 
     function bridgeAmount(
@@ -68,7 +90,7 @@ contract UBIPolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
     function bridgeFlow(
         uint256 chainId,
         uint256 tokenId,
-        bytes calldata data
+        bytes calldata 
     ) external override onlyBridgeManager {
         // require(IUBI(ubi).isDelegator(msg.sender), 'only delegator can deposit');
         if (msg.sender != bridgeManager) {
@@ -77,7 +99,7 @@ contract UBIPolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
         // NOTE: BirdgeRouter already validated that the call comes from Flow owner or fUBI contract.
         (uint256 ratePerSecond, uint256 startTime, address sender, bool isActive) = IFUBI(fUBI).getFlow(tokenId);
         if (!isActive) {
-            revert('InactiveFlow');
+            revert InactiveFlow(tokenId);
         }
 
         require(!bridgedFubis[tokenId], "flow already bridged");

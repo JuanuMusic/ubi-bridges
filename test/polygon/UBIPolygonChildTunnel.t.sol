@@ -4,13 +4,14 @@ pragma solidity ^0.8.13;
 import "forge-std/Test.sol";
 import "../../contracts/polygon/UBIPolygonChildTunnel.sol";
 import "../../contracts/polygon/UBIPolygon.sol";
+import "../mocks/FXRootMock.sol";
 
 contract UBIPolygonChildTunnelTest is Test {
     address fxChild = address(123);
     UBIPolygonChildTunnel childTunnel;
     UBIPolygon ubi;
 
-    address fxRootTunnel = address(1);
+    FXRootMock fxRoot;
     address user1 = address(20);
     address user2 = address(21);
 
@@ -19,8 +20,9 @@ contract UBIPolygonChildTunnelTest is Test {
     bytes32 constant UBI_DEPOSIT = keccak256("UBI_DEPOSIT");
 
     function setUp() public {
+        fxRoot = new FXRootMock();
         childTunnel  = new UBIPolygonChildTunnel(fxChild);
-        childTunnel.setFxRootTunnel(fxRootTunnel);
+        childTunnel.setFxRootTunnel(address(fxRoot));
         ubi = new UBIPolygon(address(childTunnel));
         childTunnel.setUBI(address(ubi));
     }
@@ -33,7 +35,7 @@ contract UBIPolygonChildTunnelTest is Test {
 
     function depositFUBI(address source, uint256 rate, uint256 tokenId) internal {
         bytes memory data = abi.encode(FUBI_DEPOSIT, abi.encode(user1, rate, block.timestamp, tokenId));
-        childTunnel.processMessageFromRoot(1, fxRootTunnel, data);
+        childTunnel.processMessageFromRoot(1, address(fxRoot), data);
     }
 
     function testFUBIDepositCorrectly() public {
@@ -52,7 +54,7 @@ contract UBIPolygonChildTunnelTest is Test {
     function testUBIDepositCorrectly(uint256 amount) public {
         vm.startPrank(fxChild);
         bytes memory data = abi.encode(UBI_DEPOSIT, abi.encode(user1, amount, block.timestamp));
-        childTunnel.processMessageFromRoot(1, fxRootTunnel, data);
+        childTunnel.processMessageFromRoot(1, address(fxRoot), data);
         uint256 balance = ubi.balanceOf(user1);
         assertEq(balance, amount);
     }
