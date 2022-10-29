@@ -4,6 +4,7 @@
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
 import { ethers } from "hardhat";
+import { env } from "process";
 
 async function main() {
     // Hardhat always runs the compile task when running scripts with its command
@@ -14,12 +15,12 @@ async function main() {
     // await hre.run('compile');
 
     // We get the contract to deploy
-    const UBIL2 = await ethers.getContractFactory("UBIL2");
-    const ubiL2 = await UBIL2.deploy("Universal Basic Income", "UBI");
+    const UBIPolygon = await ethers.getContractFactory("UBIPolygon");
+    const ubiPolygon = await UBIPolygon.deploy("Universal Basic Income", "UBI", process.env.MUMBAI_CHILD_MANAGER!);
 
-    await ubiL2.deployed();
+    await ubiPolygon.deployed();
 
-    console.log("UBIL2 deployed to:", ubiL2.address);
+    console.log("UBIL2 deployed to:", ubiPolygon.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Contracts v4.4.1 (security/ReentrancyGuard.sol)
-
-pragma solidity 0.8.4;
+pragma solidity ^0.8.0;
 
 interface IUBI {
-    function isDelegator(address _implementation) external view returns(bool);
+    function isDelegator(address _implementation) external view returns (bool);
 }

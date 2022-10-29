@@ -14,8 +14,8 @@ async function main() {
   // await hre.run('compile');
 
   // We get the contract to deploy
-  const UBI2PolygonChildTunnel = await ethers.getContractFactory("UBI2PolygonChildTunnel");
-  const child = await UBI2PolygonChildTunnel.deploy(process.env.FX_CHILD!);
+  const UBIPolygonChildTunnel = await ethers.getContractFactory("UBIPolygonChildTunnel");
+  const child = await UBIPolygonChildTunnel.deploy(process.env.FX_CHILD!);
 
   await child.deployed();
 
