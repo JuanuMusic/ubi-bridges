@@ -10,19 +10,25 @@ import '../interfaces/IBridge.sol';
 
 error FUBINotBridged(uint256 tokenId);
 error InactiveFlow(uint256 tokenId);
+error InvalidBridgeManager();
 
 contract UBIPolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
     address UBI;
     address fUBI;
-    address bridgeManager;
+    address public bridgeManager;
     bytes public latestData;
     mapping(uint256 => bool) bridgedFubis;
+
+    bytes32 public constant UBI_DEPOSIT = keccak256('UBI_DEPOSIT');
 
     bytes32 public constant FUBI_DEPOSIT = keccak256('FUBI_DEPOSIT');
     bytes32 public constant FUBI_CANCELLED_ON_L2 = keccak256('FUBI_CANCELLED_ON_L2');
 
     /// @dev Event emited when a FUBI has been deposited to the bridge.
     event FUBIDeposited(address indexed sourceHuman, address indexed depositer, uint256 id);
+    
+    /// @dev Event emited when UBI amount has been deposited to the bridge.
+    event UBIDeposited(address indexed sender, uint256 amount);
 
     constructor(
         address _UBI,
@@ -35,7 +41,7 @@ contract UBIPolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
     }
 
     modifier onlyBridgeManager() {
-        require(msg.sender == bridgeManager, "Only Bridge Manager can call this");
+        if(msg.sender != bridgeManager) revert InvalidBridgeManager();
         _;
     }
 
@@ -81,10 +87,14 @@ contract UBIPolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
 
     function bridgeAmount(
         uint256 chainId,
+        address sender,
         uint256 amount,
         bytes calldata data
     ) external override onlyBridgeManager {
-        // TODO: Implement later
+        // TODO: Add origin chainId in the message, to avoid problems in case we have more bridges
+        bytes memory message = abi.encode(UBI_DEPOSIT, abi.encode(sender, amount));
+        _sendMessageToChild(message);
+        emit UBIDeposited(sender, amount);
     }
 
     function bridgeFlow(
@@ -92,10 +102,6 @@ contract UBIPolygonRootTunnelBridge is IBridge, FxBaseRootTunnel, Ownable {
         uint256 tokenId,
         bytes calldata 
     ) external override onlyBridgeManager {
-        // require(IUBI(ubi).isDelegator(msg.sender), 'only delegator can deposit');
-        if (msg.sender != bridgeManager) {
-            revert('OnlyBridgeManager');
-        }
         // NOTE: BirdgeRouter already validated that the call comes from Flow owner or fUBI contract.
         (uint256 ratePerSecond, uint256 startTime, address sender, bool isActive) = IFUBI(fUBI).getFlow(tokenId);
         if (!isActive) {

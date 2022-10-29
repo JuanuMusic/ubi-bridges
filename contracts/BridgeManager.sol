@@ -89,7 +89,7 @@ contract BridgeManager is IERC721Receiver, Initializable, UUPSUpgradeable, Gover
     ) external {
         IERC20(UBI).transferFrom(msg.sender, address(this), _amount);
         address bridge = _getBridgeAddressIfSupported(_chainId);
-        IBridge(bridge).bridgeAmount(_chainId, _amount, _data);
+        IBridge(bridge).bridgeAmount(_chainId, msg.sender, _amount, _data);
         emit AmountBridged(bridge, _chainId, _amount, _data);
     }
 

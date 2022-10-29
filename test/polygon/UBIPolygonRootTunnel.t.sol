@@ -5,11 +5,14 @@ import "forge-std/Test.sol";
 import "../../contracts/polygon/UBIPolygonRootTunnel.sol";
 
 contract UBIPolygonRootTunnelTest is Test {
-    address fxChild = address(123);
-    UBIPolygonRootTunnelBridge childTunnel;
+    address ubi = address(28);
+    address fubi = address(6);
+    address fxRoot = address(123);
+    address checkpointManager = address(1234);
+    address bridgeManager = address(777);
+    UBIPolygonRootTunnelBridge rootTunnel;
     // UBIPolygon ubi;
 
-    address fxRootTunnel = address(1);
     // address user1 = address(20);
     // address user2 = address(21);
 
@@ -17,12 +20,25 @@ contract UBIPolygonRootTunnelTest is Test {
     // bytes32 constant FUBI_DEPOSIT = keccak256("FUBI_DEPOSIT");
     // bytes32 constant UBI_DEPOSIT = keccak256("UBI_DEPOSIT");
 
-    // function setUp() public {
-    //     childTunnel  = new UBIPolygonChildTunnel(fxChild);
-    //     childTunnel.setFxRootTunnel(fxRootTunnel);
-    //     ubi = new UBIPolygon(address(childTunnel));
-    //     childTunnel.setUBI(address(ubi));
-    // }
+    function setUp() public {
+        rootTunnel = new UBIPolygonRootTunnelBridge(ubi, fubi, checkpointManager, fxRoot);
+        rootTunnel.setBridgeManager(bridgeManager); 
+    }
+
+    function testSetBridgeManager() public {
+        address testBridgeManager = address(0x303456);
+        rootTunnel.setBridgeManager(testBridgeManager);
+        assertEq(rootTunnel.bridgeManager(),testBridgeManager);
+    }
+
+    function testBridgeUBI() public {
+        address sender = address(10);
+        uint256 amount = 1 ether;
+        bytes memory data = '0x01'; 
+        vm.startPrank(bridgeManager);
+        rootTunnel.bridgeAmount(1, sender, amount, data);
+        vm.stopPrank();
+    }
 
     // function testSetUBI() public {
     //     address ubiAddress = address(28);

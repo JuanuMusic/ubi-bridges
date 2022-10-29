@@ -43,6 +43,6 @@ contract UBIPolygon is IUBIL2, BaseUBI, Governable {
     }
 
     function cancelDelegation(uint256 tokenId, uint256 ratePerSecond) external {
-        UBIPolygonChildTunnel(childTunnel).onCancelDelegation(msg.sender, tokenId, ratePerSecond);
+       UBIPolygonChildTunnel(childTunnel).onCancelDelegation(msg.sender, tokenId, ratePerSecond);
     }
 }

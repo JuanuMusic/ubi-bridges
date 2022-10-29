@@ -10,9 +10,9 @@ interface IBridge {
      */
     function bridgeAmount(
         uint256 chainId,
+        address sender,
         uint256 amount,
-        bytes calldata data
-    ) external;
+        bytes calldata data) external;
 
     /**
      * @dev Bridges a flow from origin chain to the chain corresponding to the given chain ID.
