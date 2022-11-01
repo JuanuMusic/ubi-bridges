@@ -1,13 +1,24 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
+import '@maticnetwork/fx-portal/contracts/tunnel/FxBaseRootTunnel.sol';
 import "forge-std/Test.sol";
 import "../../contracts/polygon/UBIPolygonRootTunnel.sol";
+
+// state sender contract
+
+
+contract MockFxRoot is IFxStateSender {
+    function sendMessageToChild(address _receiver, bytes calldata _data) external {
+        return;
+    }
+}
+
 
 contract UBIPolygonRootTunnelTest is Test {
     address ubi = address(28);
     address fubi = address(6);
-    address fxRoot = address(123);
+    IFxStateSender public fxRoot;
     address checkpointManager = address(1234);
     address bridgeManager = address(777);
     UBIPolygonRootTunnelBridge rootTunnel;
@@ -21,7 +32,8 @@ contract UBIPolygonRootTunnelTest is Test {
     // bytes32 constant UBI_DEPOSIT = keccak256("UBI_DEPOSIT");
 
     function setUp() public {
-        rootTunnel = new UBIPolygonRootTunnelBridge(ubi, fubi, checkpointManager, fxRoot);
+        fxRoot = new MockFxRoot();
+        rootTunnel = new UBIPolygonRootTunnelBridge(ubi, fubi, checkpointManager, address(fxRoot));
         rootTunnel.setBridgeManager(bridgeManager); 
     }
 
@@ -34,7 +46,7 @@ contract UBIPolygonRootTunnelTest is Test {
     function testBridgeUBI() public {
         address sender = address(10);
         uint256 amount = 1 ether;
-        bytes memory data = '0x01'; 
+        bytes memory data = ""; 
         vm.startPrank(bridgeManager);
         rootTunnel.bridgeAmount(1, sender, amount, data);
         vm.stopPrank();
